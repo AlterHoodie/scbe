@@ -8,8 +8,10 @@ import boto3
 from botocore.config import Config
 
 from src.config import get_settings
+from src.logger import get_logger
 
 settings = get_settings()
+logger = get_logger(__name__)
 
 
 class S3Client:
@@ -20,7 +22,7 @@ class S3Client:
             aws_secret_access_key=settings.aws_secret_access_key or None,
             region_name=settings.aws_region,
             endpoint_url=settings.aws_endpoint_url or None,
-            config=Config(s3={"addressing_style": "path"}),
+            config=Config(s3={"addressing_style": settings.s3_addressing_style}),
         )
         self.bucket = settings.s3_bucket
         if settings.aws_endpoint_url:
@@ -28,20 +30,28 @@ class S3Client:
 
     def allow_browser_uploads(self) -> None:
         """Let the frontend PUT a video and GET presigned results from this origin."""
-        self.client.put_bucket_cors(
-            Bucket=self.bucket,
-            CORSConfiguration={
-                "CORSRules": [
-                    {
-                        "AllowedOrigins": [settings.cors_origin],
-                        "AllowedMethods": ["GET", "HEAD", "PUT"],
-                        "AllowedHeaders": ["*"],
-                        "ExposeHeaders": ["ETag"],
-                        "MaxAgeSeconds": 3600,
-                    }
-                ]
-            },
-        )
+        try:
+            self.client.put_bucket_cors(
+                Bucket=self.bucket,
+                CORSConfiguration={
+                    "CORSRules": [
+                        {
+                            "AllowedOrigins": [settings.cors_origin],
+                            "AllowedMethods": ["GET", "HEAD", "PUT"],
+                            "AllowedHeaders": ["*"],
+                            "ExposeHeaders": ["ETag"],
+                            "MaxAgeSeconds": 3600,
+                        }
+                    ]
+                },
+            )
+        except Exception as exc:
+            logger.warning(
+                "Bucket CORS was not applied",
+                bucket=self.bucket,
+                error=type(exc).__name__,
+                detail=str(exc),
+            )
 
     def presign_put(self, key: str, content_type: str = "video/mp4") -> str:
         return self.client.generate_presigned_url(

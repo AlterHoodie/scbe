@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     aws_endpoint_url: str = ""
     s3_bucket: str = ""
+    s3_addressing_style: str = "path"
 
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-4.1-mini"
