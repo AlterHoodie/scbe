@@ -9,7 +9,8 @@ wheels/
 # Virtual environments
 .venv
 .env
-docs/
+docs/*
+!docs/architecture.png
 
 # Pose runs and downloaded model files
 dataset/
